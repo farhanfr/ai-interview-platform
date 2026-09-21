@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSetAtom } from "jotai";
 import { authAtom, saveToken } from "@/stores/authAtom";
 import { authApi } from "@/services/auth";
@@ -73,6 +73,14 @@ export default function LoginPage() {
             Sign in
           </Button>
         </form>
+
+        {/* <div className="text-center">
+          <Link to="/signup">
+            <Button type="button" className="w-full btn-outline">
+              Sign up
+            </Button>
+          </Link>
+        </div> */}
 
       </div>
     </div>

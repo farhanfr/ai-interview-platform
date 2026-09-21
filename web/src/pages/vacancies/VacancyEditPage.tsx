@@ -26,6 +26,7 @@ export default function VacancyEditPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [removedSkillIds, setRemovedSkillIds] = useState<number[]>([]);
 
   const { register, handleSubmit, control, setValue, watch, reset } = useForm<VacancyFormValues>({
     defaultValues: { role_title: "", culture_dimensions: "", competency_expectations: "", skills: [] },
@@ -36,7 +37,7 @@ export default function VacancyEditPage() {
     vacanciesApi.get(Number(id)).then((res) => {
       const v = res.data.vacancy;
       reset({ role_title: v.role_title, culture_dimensions: v.culture_dimensions, competency_expectations: v.competency_expectations, skills: v.skills });
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => { }).finally(() => setLoading(false));
   }, [id, reset]);
 
   const onSubmit = async (data: VacancyFormValues) => {
@@ -46,7 +47,13 @@ export default function VacancyEditPage() {
         role_title: data.role_title,
         culture_dimensions: data.culture_dimensions,
         competency_expectations: data.competency_expectations,
-        vacancy_skills_attributes: data.skills,
+        vacancy_skills_attributes: [
+          ...data.skills,
+          ...removedSkillIds.map((skillId) => ({
+            id: skillId,
+            _destroy: true,
+          })),
+        ],
       });
       navigate("/vacancies");
     } finally {
@@ -75,7 +82,15 @@ export default function VacancyEditPage() {
             <div key={field.id} className="border rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{watch(`skills.${index}.skill_label`)}</span>
-                <button type="button" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
+                <button type="button" onClick={() => {
+                  const skill = watch(`skills.${index}`);
+
+                  if (skill.id) {
+                    setRemovedSkillIds((prev) => [...prev, Number(skill.id)]);
+                  }
+
+                  remove(index);
+                }} className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
               </div>
               <LevelRadio value={watch(`skills.${index}.expected_level`) ?? 3} onChange={(v) => setValue(`skills.${index}.expected_level`, v)} />
             </div>
