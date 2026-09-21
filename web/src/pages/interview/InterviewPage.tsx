@@ -42,13 +42,55 @@ export default function InterviewPage() {
   // Fetch candidate info
   useEffect(() => {
     if (!token) return;
-    sessionsApi.getCandidateInfo(token)
-      .then((res) => {
-        setCandidateInfo(res.data);
-        setSessionId(res.data.session_id);
-        if (res.data.session_status === "ended") setInterviewState("complete");
-      })
-      .catch(() => setInterviewState("complete"));
+
+    let cancelled = false;
+
+    const loadSession = async () => {
+      try {
+        const res = await sessionsApi.getCandidateInfo(token);
+
+        if (cancelled) return;
+
+        const info = res.data;
+
+        setCandidateInfo(info);
+        setSessionId(info.session_id);
+
+        if (info.session_status === "ended") {
+          setInterviewState("complete");
+          return;
+        }
+
+        // Restore transcript yang sudah tersimpan di backend.
+        try {
+          const transcriptRes = await sessionsApi.getTranscript(
+            info.session_id
+          );
+
+          if (cancelled) return;
+
+          setTranscript(
+            transcriptRes.data.turns.slice(-10).map((turn) => ({
+              speaker: turn.speaker,
+              text: turn.text,
+            }))
+          );
+        } catch {
+          // Transcript gagal di-load tidak boleh membuat
+          // interview dianggap selesai.
+        }
+      } catch {
+        if (!cancelled) {
+          setInterviewState("complete");
+        }
+      }
+    };
+
+    loadSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   const muteRef = useRef<(() => void) | null>(null);
@@ -184,21 +226,50 @@ export default function InterviewPage() {
     interviewState === "reconnecting"
       ? connectionLostLong ? "lost" : "reconnecting"
       : connectionState === "connected"
-      ? "connected"
-      : "reconnecting";
+        ? "connected"
+        : "reconnecting";
+
+  const isResumingSession =
+    candidateInfo?.session_status === "active";
 
   // ── State A: Pre-start ──────────────────────────────────────────────────
   if (interviewState === "idle") {
     return (
       <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-semibold">{candidateInfo?.role_title ?? "AI Interview"}</h1>
+          <h1 className="text-xl font-semibold">
+            {candidateInfo?.role_title ?? "AI Interview"}
+          </h1>
+
           {candidateInfo && (
             <p className="text-sm text-muted-foreground">
               {candidateInfo.time_limit_min} minutes
             </p>
           )}
         </div>
+
+        {/* {isResumingSession && transcript.length > 0 && (
+          <div className="border rounded-lg p-4 space-y-3">
+            <div>
+              <p className="text-sm font-medium">
+                Previous conversation
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your previous interview conversation has been restored.
+              </p>
+            </div>
+
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {transcript.map((turn, i) => (
+                <TranscriptBubble
+                  key={`${turn.speaker}-${i}`}
+                  speaker={turn.speaker}
+                  text={turn.text}
+                />
+              ))}
+            </div>
+          </div>
+        )} */}
 
         {!hardwareCheckDone ? (
           <div className="space-y-4">
@@ -208,17 +279,28 @@ export default function InterviewPage() {
               <p>• The session will last up to {candidateInfo?.time_limit_min ?? "—"} minutes.</p>
               <p>• Your mic will be active throughout. You can end anytime.</p>
             </div>
-            <HardwareCheck onStart={() => { setHardwareCheckDone(true); startInterview(); }} />
+
+            <HardwareCheck
+              onStart={() => {
+                setHardwareCheckDone(true);
+                startInterview();
+              }}
+            />
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5">
               <CheckCircle className="h-4 w-4 shrink-0" />
-              <span>Hardware checks passed. You're ready to start.</span>
+              <span>Hardware checks passed. You're ready to continue.</span>
             </div>
-            <Button className="w-full" size="lg" onClick={startInterview}>
+
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={startInterview}
+            >
               <Mic className="h-4 w-4 mr-2" />
-              Start Interview
+              {isResumingSession ? "Resume Interview" : "Start Interview"}
             </Button>
           </div>
         )}
@@ -336,29 +418,29 @@ export default function InterviewPage() {
             )}
           </Button>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm">End Interview</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>End interview?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to end the interview early?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={endInterview}>End interview</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        {import.meta.env.DEV && (
-          <Button variant="outline" size="sm" className="text-xs" disabled={interviewState === "reconnecting"}
-            onClick={() => sendJson({ type: "debug_force_reconnect" })}>
-            ⚡ Force reconnect
-          </Button>
-        )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">End Interview</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>End interview?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to end the interview early?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={endInterview}>End interview</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          {import.meta.env.DEV && (
+            <Button variant="outline" size="sm" className="text-xs" disabled={interviewState === "reconnecting"}
+              onClick={() => sendJson({ type: "debug_force_reconnect" })}>
+              ⚡ Force reconnect
+            </Button>
+          )}
         </div>
       </div>
 
