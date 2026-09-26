@@ -32,20 +32,28 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    const isLoginRequest =
-      error.config?.url?.includes("/auth/login");
+  const isLoginRequest =
+    error.config?.url?.includes("/auth/login");
 
-    if (
-      (error.response?.status === 401 ||
-        error.response?.status === 403) &&
-      !isLoginRequest
-    ) {
-      clearToken();
-      window.location.href = "/login";
-    }
+  const isPublicCandidateRequest =
+    error.config?.url?.includes("/candidate") ||
+    error.config?.url?.includes("/audio_complete");
 
-    return Promise.reject(error);
+  const isUnauthorized =
+    error.response?.status === 401 ||
+    error.response?.status === 403;
+
+  if (
+    isUnauthorized &&
+    !isLoginRequest &&
+    !isPublicCandidateRequest
+  ) {
+    clearToken();
+    window.location.href = "/login";
   }
+
+  return Promise.reject(error);
+}
 );
 
 export default api;

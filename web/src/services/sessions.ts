@@ -1,5 +1,5 @@
 import api from "./api";
-import type { Session, CoverageMap, TranscriptTurn, Portfolio, CandidateInfo } from "@/types";
+import type { Session, CoverageMap, TranscriptTurn, Portfolio, CandidateInfo, HiringDecision } from "@/types";
 
 export const sessionsApi = {
   get: (id: number) =>
@@ -34,4 +34,36 @@ export const sessionsApi = {
 
   audioComplete: (token: string) =>
     api.post<{ ended: boolean; message: string }>(`/sessions/${token}/audio_complete`),
+
+  extendInvitation: (
+  sessionId: number,
+  expirationDays: 1 | 3 | 7
+) =>
+  api.post<{
+    session: Session;
+    message: string;
+  }>(`/sessions/${sessionId}/extend`, {
+    session: {
+      expiration_days: expirationDays,
+    },
+  }),
+
+
+updateDecision: (
+  sessionId: number,
+  hiringDecision: HiringDecision,
+  decisionNotes: string
+) =>
+  api.patch<{
+    session: Session;
+    message: string;
+  }>(
+    `/sessions/${sessionId}/decision`,
+    {
+      session: {
+        hiring_decision: hiringDecision,
+        decision_notes: decisionNotes,
+      },
+    }
+  ),
 };

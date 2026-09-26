@@ -10,7 +10,7 @@ Rails.application.routes.draw do
       # Signup
       post "signup", to: "authentication#signup"
       # Health check
-      get  'health', to: proc { [200, {}, [{ status: 'ok' }.to_json]] }
+      get 'health', to: proc { [200, {}, [{ status: 'ok' }.to_json]] }
 
       # Upload speed test — accepts any payload, discards it, returns bytes received
       post 'speed_test', to: proc { |env|
@@ -27,10 +27,12 @@ Rails.application.routes.draw do
       resources :sessions, only: %i[show destroy] do
         member do
           post :end_session
+          post :extend_invitation, path: 'extend'
           get  :coverage
           get  :transcript
           get  :portfolio, to: 'portfolios#show'
           post 'portfolio/regenerate', to: 'portfolios#regenerate'
+          patch :update_decision, path: "decision"
         end
       end
 
@@ -46,8 +48,8 @@ Rails.application.routes.draw do
       end
 
       # B7 Skill Taxonomy (read-only reference data)
-      get  'skill_taxonomies',          to: 'skill_taxonomies#index'
-      get  'skill_taxonomies/:skill_id', to: 'skill_taxonomies#show', as: :skill_taxonomy
+      get 'skill_taxonomies',           to: 'skill_taxonomies#index'
+      get 'skill_taxonomies/:skill_id', to: 'skill_taxonomies#show', as: :skill_taxonomy
 
       # Vacancies
       resources :vacancies
