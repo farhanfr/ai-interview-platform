@@ -26,6 +26,7 @@ import FitGapReportPage from "@/pages/fitgap/FitGapReportPage";
 import TranscriptPage from "@/pages/transcript/TranscriptPage";
 import InterviewPage from "@/pages/interview/InterviewPage";
 import SettingsPage from "./pages/settings/SettingsPage";
+import CandidatesPage from "./pages/candidates/CandidatesPage";
 
 export default function App() {
   return (
@@ -102,6 +103,8 @@ export default function App() {
               path="/vacancies/:id/edit"
               element={<VacancyEditPage />}
             />
+
+            <Route path="candidates" element={<CandidatesPage />} />
           </Route>
         </Route>
 

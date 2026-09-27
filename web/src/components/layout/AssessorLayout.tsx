@@ -21,6 +21,7 @@ import {
   PanelLeftOpen,
   Code2,
   Settings,
+  Users,
 } from "lucide-react";
 
 import { tenantAtom } from "@/stores/tenantAtom";
@@ -49,6 +50,12 @@ const navigation = [
     description: "Manage vacancies",
   },
   {
+    href: "/candidates",
+    label: "Candidates",
+    icon: Users,
+    description: "Across all assessments",
+  },
+  {
     label: "Settings",
     href: "/settings",
     icon: Settings,
@@ -60,6 +67,8 @@ const pageTitles: Record<string, string> = {
   dashboard: "Overview",
   assessments: "Assessments",
   vacancies: "Vacancies",
+  candidates: "Candidates",
+  settings: "Settings",
 };
 
 export default function AssessorLayout() {

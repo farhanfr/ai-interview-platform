@@ -861,7 +861,7 @@ export default function AssessmentInvitePage() {
                                 {displayName}
                               </p>
                               <p className="mt-1 text-xs text-slate-400">
-                                Session #{session.id}
+                                {session.candidate_email ?? "-"}
                               </p>
                             </div>
                           </div>
